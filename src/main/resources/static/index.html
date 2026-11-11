@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moogle 音樂搜尋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1238;
+    --panel: #261b52;
+    --line: #3b2d78;
+    --text: #f4efff;
+    --muted: #a99fd0;
+    --pink: #ff4f81;
+    --amber: #ffc857;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(1000px 500px at 50% -10%, #3a2380 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 20px 80px; }
+
+  /* 標題區:黑膠唱片 + 字標 */
+  header { text-align: center; }
+  .record {
+    width: 112px; height: 112px; margin: 0 auto 18px; border-radius: 50%;
+    background:
+      radial-gradient(circle, var(--bg) 0 5px, var(--pink) 6px 22px, #15102e 23px 100%),
+      repeating-radial-gradient(circle, #15102e 0 3px, #20184a 4px 5px);
+    background-blend-mode: normal;
+    box-shadow: 0 0 0 3px var(--line), 0 14px 40px rgba(255,79,129,.25);
+    position: relative;
+  }
+  .record::after {            /* 反光 */
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 20deg, transparent 0 20%, rgba(255,255,255,.14) 25%, transparent 30% 70%, rgba(255,255,255,.1) 75%, transparent 80%);
+  }
+  .record.spin { animation: spin 1.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  h1 {
+    margin: 0;
+    font-family: 'Unbounded', 'Noto Sans TC', sans-serif;
+    font-weight: 800;
+    font-size: clamp(40px, 9vw, 64px);
+    letter-spacing: -0.02em;
+  }
+  .sub { margin: 6px 0 0; color: var(--muted); }
+
+  /* 搜尋列 */
+  form { display: flex; gap: 10px; margin-top: 30px; }
+  input[type=search] {
+    flex: 1; min-width: 0;
+    padding: 14px 20px; font: inherit; font-size: 17px;
+    color: var(--text); background: var(--panel);
+    border: 2px solid var(--line); border-radius: 999px;
+  }
+  input::placeholder { color: var(--muted); }
+  input:focus-visible, button:focus-visible, .chip:focus-visible, .track a:focus-visible {
+    outline: 3px solid var(--amber); outline-offset: 2px;
+  }
+  .go {
+    padding: 0 28px; font: inherit; font-weight: 700; font-size: 17px;
+    color: #2a0b1b; background: var(--amber);
+    border: none; border-radius: 999px; cursor: pointer;
+  }
+  .go:hover { background: #ffd57e; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+  .chip {
+    padding: 6px 14px; font: inherit; font-size: 14px; color: var(--text);
+    background: transparent; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--pink); color: var(--pink); }
+
+  /* 結果 */
+  #status { margin: 36px 0 12px; color: var(--muted); text-align: center; }
+  .track {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  }
+  .track:hover { border-color: var(--pink); }
+  .disc {
+    flex: none; width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: radial-gradient(circle, var(--bg) 0 4px, var(--pink) 5px 12px, #15102e 13px);
+  }
+  .disc svg { width: 14px; height: 14px; fill: var(--text); margin-left: 2px; }
+  .info { min-width: 0; }
+  .track a {
+    display: block; color: var(--text); font-weight: 700; font-size: 17px; text-decoration: none;
+  }
+  .track a:hover { color: var(--amber); text-decoration: underline; }
+  .host { margin-top: 2px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+  /* 載入中:等化器 */
+  .eq { display: flex; justify-content: center; align-items: flex-end; gap: 5px; height: 36px; }
+  .eq span { width: 6px; background: var(--pink); border-radius: 3px; animation: bounce 0.9s ease-in-out infinite; }
+  .eq span:nth-child(2) { animation-delay: .15s; background: var(--amber); }
+  .eq span:nth-child(3) { animation-delay: .3s; }
+  .eq span:nth-child(4) { animation-delay: .45s; background: var(--amber); }
+  @keyframes bounce { 0%,100% { height: 8px; } 50% { height: 34px; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .record.spin, .eq span { animation: none; }
+    .eq span { height: 20px; }
+  }
+  @media (max-width: 480px) {
+    form { flex-direction: column; }
+    .go { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="record" id="record" aria-hidden="true"></div>
+    <h1>Moogle</h1>
+    <p class="sub">搜尋歌手、歌名、專輯與音樂知識</p>
+  </header>
+
+  <form id="searchForm">
+    <input type="search" id="query" placeholder="例如:周杰倫 晴天" aria-label="搜尋字詞" autocomplete="off">
+    <button type="submit" class="go">搜尋</button>
+  </form>
+
+  <div class="chips" id="chips">
+    <button type="button" class="chip">周杰倫</button>
+    <button type="button" class="chip">Taylor Swift</button>
+    <button type="button" class="chip">爵士樂入門</button>
+    <button type="button" class="chip">五月天 演唱會</button>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+  const record = document.getElementById('record');
+  const statusBox = document.getElementById('status');
+  const resultsBox = document.getElementById('results');
+
+  function setStatus(text) {
+    statusBox.innerHTML = '';
+    statusBox.textContent = text;
+  }
+
+  function showLoading() {
+    resultsBox.innerHTML = '';
+    statusBox.textContent = '';
+    const eq = document.createElement('div');
+    eq.className = 'eq';
+    for (let i = 0; i < 4; i++) eq.appendChild(document.createElement('span'));
+    statusBox.appendChild(eq);
+    record.classList.add('spin');
+  }
+
+  function hostOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch (e) { return url; }
+  }
+
+  function renderTrack(title, url) {
+    const row = document.createElement('div');
+    row.className = 'track';
+
+    const disc = document.createElement('div');
+    disc.className = 'disc';
+    disc.innerHTML = '<svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z"/></svg>';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = title;
+
+    const host = document.createElement('div');
+    host.className = 'host';
+    host.textContent = hostOf(url);
+
+    info.appendChild(a);
+    info.appendChild(host);
+    row.appendChild(disc);
+    row.appendChild(info);
+    return row;
+  }
+
+  function doSearch(q) {
+    q = q.trim();
+    if (!q) {
+      resultsBox.innerHTML = '';
+      setStatus('請先輸入想找的歌手或歌名。');
+      return;
+    }
+
+    showLoading();
+
+    fetch('/api/search?q=' + encodeURIComponent(q))
+      .then(r => {
+        if (!r.ok) throw new Error('伺服器回應錯誤');
+        return r.json();
+      })
+      .then(data => {
+        const entries = Object.entries(data);
+        resultsBox.innerHTML = '';
+        if (entries.length === 0) {
+          setStatus('沒有找到結果,換個歌手、歌名或關鍵字試試。');
+          return;
+        }
+        setStatus('找到 ' + entries.length + ' 筆關於「' + q + '」的結果');
+        entries.forEach(([title, url]) => resultsBox.appendChild(renderTrack(title, url)));
+      })
+      .catch(err => {
+        console.error(err);
+        resultsBox.innerHTML = '';
+        setStatus('搜尋失敗,請確認伺服器已啟動後再試一次。');
+      })
+      .finally(() => record.classList.remove('spin'));
+  }
+
+  document.getElementById('searchForm').addEventListener('submit', e => {
+    e.preventDefault();
+    doSearch(document.getElementById('query').value);
+  });
+
+  document.getElementById('chips').addEventListener('click', e => {
+    if (!e.target.classList.contains('chip')) return;
+    const input = document.getElementById('query');
+    input.value = e.target.textContent;
+    doSearch(input.value);
+  });
+</script>
+</body>
+</html>
